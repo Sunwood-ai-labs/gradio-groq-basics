@@ -7,83 +7,83 @@ import soundfile as sf
 from PIL import Image
 import base64
 
-# Get the GROQ_API_KEY from environment variables
+# 環境変数からGROQ_API_KEYを取得
 api_key = os.environ.get("GROQ_API_KEY")
 if not api_key:
-    raise ValueError("Please set the GROQ_API_KEY environment variable.")
+    raise ValueError("GROQ_API_KEY環境変数を設定してください。")
 
-# Initialize the Groq client
+# Groqクライアントの初期化
 client = groq.Client(api_key=api_key)
 
 def transcribe_audio(audio):
     if audio is None:
-        return "No audio provided.", ""
+        return "音声が提供されていません。", ""
     sr, y = audio
 
-    # Convert to mono if stereo
+    # ステレオの場合はモノラルに変換
     if y.ndim > 1:
         y = y.mean(axis=1)
 
-    # Normalize audio
+    # 音声の正規化
     y = y.astype(np.float32)
     y /= np.max(np.abs(y))
 
-    # Write audio to buffer
+    # 音声をバッファに書き込み
     buffer = io.BytesIO()
     sf.write(buffer, y, sr, format='wav')
     buffer.seek(0)
 
     try:
-        # Use Distil-Whisper English model for transcription
+        # Whisper大規模モデルを使用して文字起こし
         completion = client.audio.transcriptions.create(
-            model="distil-whisper-large-v3-en",
+            model="whisper-large-v3-turbo",
             file=("audio.wav", buffer),
             response_format="text"
         )
         transcription = completion
     except Exception as e:
-        transcription = f"Error in transcription: {str(e)}"
+        transcription = f"文字起こしエラー: {str(e)}"
 
     response = generate_response(transcription)
     return transcription, response
 
 def generate_response(transcription):
-    if not transcription or transcription.startswith("Error"):
-        return "No valid transcription available. Please try speaking again."
+    if not transcription or transcription.startswith("エラー"):
+        return "有効な文字起こしがありません。もう一度話してください。"
 
     try:
-        # Use Llama 3.1 70B model for text generation
+        # Llama 3.1 70Bモデルを使用してテキスト生成
         completion = client.chat.completions.create(
             model="llama-3.1-70b-versatile",
             messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "system", "content": "あなたは役立つアシスタントです。"},
                 {"role": "user", "content": transcription}
             ],
         )
         return completion.choices[0].message.content
     except Exception as e:
-        return f"Error in response generation: {str(e)}"
+        return f"応答生成エラー: {str(e)}"
 
 def analyze_image(image):
     if image is None:
-        return "No image uploaded.", None
+        return "画像がアップロードされていません。", None
 
-    # Convert numpy array to PIL Image
+    # numpy配列をPIL Imageに変換
     image_pil = Image.fromarray(image.astype('uint8'), 'RGB')
 
-    # Convert PIL image to base64
+    # PIL画像をbase64に変換
     buffered = io.BytesIO()
     image_pil.save(buffered, format="JPEG")
     base64_image = base64.b64encode(buffered.getvalue()).decode('utf-8')
 
     try:
-        # Use Llama 3.2 11B Vision model to analyze image
+        # Llama 3.2 11B Visionモデルを使用して画像を分析
         chat_completion = client.chat.completions.create(
             messages=[
                 {
                     "role": "user",
                     "content": [
-                        {"type": "text", "text": "Describe this image in detail."},
+                        {"type": "text", "text": "この画像を詳細に説明してください。"},
                         {
                             "type": "image_url",
                             "image_url": {
@@ -97,7 +97,7 @@ def analyze_image(image):
         )
         description = chat_completion.choices[0].message.content
     except Exception as e:
-        description = f"Error in image analysis: {str(e)}"
+        description = f"画像分析エラー: {str(e)}"
 
     return description
 
@@ -105,7 +105,7 @@ def respond(message, chat_history):
     if chat_history is None:
         chat_history = []
 
-    # Prepare the message history for the API
+    # APIのメッセージ履歴を準備
     messages = []
     for user_msg, assistant_msg in chat_history:
         messages.append({"role": "user", "content": user_msg})
@@ -114,7 +114,7 @@ def respond(message, chat_history):
     messages.append({"role": "user", "content": message})
 
     try:
-        # Use Llama 3.1 70B model for generating assistant response
+        # Llama 3.1 70Bモデルを使用してアシスタントの応答を生成
         completion = client.chat.completions.create(
             model="llama-3.1-70b-versatile",
             messages=messages,
@@ -122,12 +122,12 @@ def respond(message, chat_history):
         assistant_message = completion.choices[0].message.content
         chat_history.append((message, assistant_message))
     except Exception as e:
-        assistant_message = f"Error: {str(e)}"
+        assistant_message = f"エラー: {str(e)}"
         chat_history.append((message, assistant_message))
 
-    return "", chat_history, chat_history  # Return state as the third output
+    return "", chat_history, chat_history  # 状態を3番目の出力として返す
 
-# Custom CSS for the Groq badge and color scheme
+# Groqバッジとカラースキーム用のカスタムCSS
 custom_css = """
 .gradio-container {
     background-color: #f5f5f5;
@@ -145,72 +145,72 @@ custom_css = """
 """
 
 with gr.Blocks(css=custom_css) as demo:
-    gr.Markdown("# 🎙️ Groq x Gradio Multi-Modal Llama-3.2 and Whisper")
+    gr.Markdown("# 🎙️ Groq x Gradio マルチモーダル Llama-3.2 および Whisper")
 
-    with gr.Tab("Audio"):
-        gr.Markdown("## Speak to the AI")
+    with gr.Tab("音声"):
+        gr.Markdown("## AIと会話する")
         with gr.Row():
-            audio_input = gr.Audio(type="numpy", label="Speak or Upload Audio")
+            audio_input = gr.Audio(type="numpy", label="話すか音声をアップロード")
         with gr.Row():
-            transcription_output = gr.Textbox(label="Transcription")
-            response_output = gr.Textbox(label="AI Assistant Response")
-        process_button = gr.Button("Process", variant="primary")
+            transcription_output = gr.Textbox(label="文字起こし")
+            response_output = gr.Textbox(label="AIアシスタントの応答")
+        process_button = gr.Button("処理", variant="primary")
         process_button.click(
             transcribe_audio,
             inputs=audio_input,
             outputs=[transcription_output, response_output]
         )
 
-    with gr.Tab("Image"):
-        gr.Markdown("## Upload an Image for Analysis")
+    with gr.Tab("画像"):
+        gr.Markdown("## 分析用の画像をアップロード")
         with gr.Row():
-            image_input = gr.Image(type="numpy", label="Upload Image")
+            image_input = gr.Image(type="numpy", label="画像をアップロード")
         with gr.Row():
-            image_description_output = gr.Textbox(label="Image Description")
-        analyze_button = gr.Button("Analyze Image", variant="primary")
+            image_description_output = gr.Textbox(label="画像の説明")
+        analyze_button = gr.Button("画像を分析", variant="primary")
         analyze_button.click(
             analyze_image,
             inputs=image_input,
             outputs=[image_description_output]
         )
 
-    with gr.Tab("Chat"):
-        gr.Markdown("## Chat with the AI Assistant")
+    with gr.Tab("チャット"):
+        gr.Markdown("## AIアシスタントとチャット")
         chatbot = gr.Chatbot()
-        state = gr.State([])  # Initialize the chat state
+        state = gr.State([])  # チャットの状態を初期化
         with gr.Row():
-            user_input = gr.Textbox(show_label=False, placeholder="Type your message here...", container=False)
-            send_button = gr.Button("Send", variant="primary")
+            user_input = gr.Textbox(show_label=False, placeholder="ここにメッセージを入力...", container=False)
+            send_button = gr.Button("送信", variant="primary")
         send_button.click(
             respond,
             inputs=[user_input, state],
             outputs=[user_input, chatbot, state],
         )
 
-    # Add the Groq badge
+    # Groqバッジを追加
     gr.HTML("""
     <div id="groq-badge">
-        <div style="color: #f55036; font-weight: bold;">POWERED BY GROQ</div>
+        <div style="color: #f55036; font-weight: bold;">GROQ提供</div>
     </div>
     """)
 
     gr.Markdown("""
-    ## How to use this app:
+    ## このアプリの使い方:
 
-    ### Audio Tab
-    1. Click on the microphone icon and speak your message or upload an audio file.
-    2. Click the "Process" button to transcribe your speech and generate a response from the AI assistant.
-    3. The transcription and AI assistant response will appear in the respective text boxes.
+    ### 音声タブ
+    1. マイクアイコンをクリックして話すか、音声ファイルをアップロードします。
+    2. "処理"ボタンをクリックして、音声を文字起こしし、AIアシスタントから応答を生成します。
+    3. 文字起こしとAIアシスタントの応答が、それぞれのテキストボックスに表示されます。
 
-    ### Image Tab
-    1. Upload an image by clicking on the image upload area.
-    2. Click the "Analyze Image" button to get a detailed description of the image.
-    3. The uploaded image and its description will appear below.
+    ### 画像タブ
+    1. 画像アップロードエリアをクリックして画像をアップロードします。
+    2. "画像を分析"ボタンをクリックして、画像の詳細な説明を取得します。
+    3. アップロードされた画像とその説明が表示されます。
 
-    ### Chat Tab
-    1. Type your message in the text box at the bottom.
-    2. Click the "Send" button to interact with the AI assistant.
-    3. The conversation will appear in the chat interface.
+    ### チャットタブ
+    1. 下部のテキストボックスにメッセージを入力します。
+    2. "送信"ボタンをクリックしてAIアシスタントと対話します。
+    3. 会話がチャットインターフェースに表示されます。
     """)
 
 demo.launch()

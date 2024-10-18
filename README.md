@@ -1,12 +1,13 @@
-# Building Blocks for Multi-Modal Apps Powered by Gradio and Groq
 
-[Video Demo](https://github.com/user-attachments/assets/0ab0f71a-4b0a-4d58-ae79-02573aa8a21d)
+<h1>🚀 GradioとGroqを活用した<br>マルチモーダルアプリケーションの構築ブロック</h1>
 
-This repository includes an application showing how to build fast multi-modal apps on Gradio powered by Groq. Specifically, it uses Whisper and Llama-3.2-vision to enable voice to text to LLM response, image to text, and traditional chat.
+[ビデオデモ](https://github.com/user-attachments/assets/0ab0f71a-4b0a-4d58-ae79-02573aa8a21d)
 
-### Quickstart
+このリポジトリには、GradioとGroqを使用して高速なマルチモーダルアプリケーションを構築する方法を示すアプリケーションが含まれています。具体的には、WhisperとLlama-3.2-visionを使用して、音声からテキスト、テキストからLLMの応答、画像からテキスト、そして従来のチャット機能を実現しています。
 
-To run the Gradio app, follow these instructions:
+### 🚀 クイックスタート
+
+Gradioアプリを実行するには、以下の手順に従ってください：
 
 ~~~
 python3 -m venv venv
@@ -28,4 +29,27 @@ export GROQ_API_KEY=gsk...
 python3 app.py
 ~~~
 
-And your app will be hosted at http://127.0.0.1:7860!
+🌐 これでアプリが http://127.0.0.1:7860 でホストされます！
+
+### 🛠️ UVを使用する場合の設定方法
+
+UVを使用する場合は、以下の手順で環境を設定できます：
+
+1. 仮想環境の作成：
+   ```
+   uv venv
+   ```
+
+2. 仮想環境の有効化（Windows PowerShellの場合）：
+   ```
+   .venv\Scripts\activate
+   ```
+
+3. 依存関係のインストール：
+   ```
+   uv pip install -r requirements.txt
+   ```
+
+⚠️ 注意：UVを使用する場合、`pip3`ではなく`pip`サブコマンドを使用します。
+
+これらの手順を実行後、アプリケーションを通常通り起動できます。
